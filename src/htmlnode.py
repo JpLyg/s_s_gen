@@ -212,10 +212,24 @@ def text_to_textnodes(text):
 
     return superlist
 
+def markdown_to_blocks(markdown):
+    content_list = markdown.split("\n\n")
+    content_list = list(map(lambda x: x.strip(),content_list))
+    content_list = list(filter(lambda x: len(x)>0, content_list))
+
+    print(content_list)
+    return content_list
 
 def main():
-    text = "This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
-    print("start:", text_to_textnodes(text))
+    text = """# This is a heading
+
+This is a paragraph of text. It has some **bold** and _italic_ words inside of it.
+
+- This is the first list item in a list block
+- This is a list item
+- This is another list item
+"""
+    markdown_to_blocks(text)
 
 
 
