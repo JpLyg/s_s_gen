@@ -104,4 +104,47 @@ def text_node_to_html_node(text_node):
         }
         return LeafNode(tag,"",prop)   
 
-#return f"<{self.tag}{self.props_to_html()}>{children_set}</{self.tag}>"
+
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+    mainlist = []
+    
+    for entry in old_nodes:
+        
+        count = entry.text.count(delimiter)
+
+        if entry.text_type != TextType.TEXT or count == 0:
+            #print("node not needed to process")
+            mainlist.append(entry)
+        else:
+            if count % 2 != 0:
+                raise Exception ("Unenclosed tag")
+            else:
+                #print("node valid for processing")
+                sublist = entry.text.split(delimiter)
+                tracker= 1
+                start = 0
+                for part in sublist:
+                    if start == tracker:
+                        tracker+=2
+                        node = TextNode(part,text_type)
+                    else:
+                        node = TextNode(part,entry.text_type)
+                    
+                    print(node)
+                    mainlist.append(node)
+                    start +=1
+
+    return mainlist
+
+
+
+
+
+
+def main():
+    a = TextNode("this is a**test**text#1**another** entry",TextType.TEXT)
+    b = [a]
+    c = split_nodes_delimiter(b,"**",TextType.BOLD)
+
+if __name__ == "__main__":
+    main()

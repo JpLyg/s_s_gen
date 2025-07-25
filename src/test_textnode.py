@@ -54,10 +54,18 @@ class TestTextNode(unittest.TestCase):
 
     def test_text(self):
         
-        node = TextNode("This is a text node", TextType.TEXT)
-        html_node = text_node_to_html_node(node)
-        self.assertEqual(html_node.tag, None)
-        self.assertEqual(html_node.value, "This is a text node")
+        node1 = TextNode("This is a text node", TextType.TEXT)
+        node2 = TextNode("This is a **text** node", TextType.TEXT)
+        list1 = [node1,node2]
+        node3 = TextNode("**This** is a text node", TextType.TEXT)
+        node4 = TextNode("This is a text node", TextType.TEXT)
+        list2 = [node3,node4]
+        new_list1 = split_nodes_delimiter(list1,"**",TextType.BOLD)
+        new_list2 = split_nodes_delimiter(list2,"**",TextType.BOLD)
+        print("n1:",new_list1)
+        print("n2:",new_list2)
+        self.assertNotEqual(new_list1,new_list2)
+        
 
 
 if __name__ == "__main__":
