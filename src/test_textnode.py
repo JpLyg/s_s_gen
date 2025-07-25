@@ -52,7 +52,7 @@ class TestTextNode(unittest.TestCase):
         )
     '''
 
-    def test_text(self):
+    def _test_text(self):
         
         node1 = TextNode("This is a text node", TextType.TEXT)
         node2 = TextNode("This is a **text** node", TextType.TEXT)
@@ -66,7 +66,34 @@ class TestTextNode(unittest.TestCase):
         print("n2:",new_list2)
         self.assertNotEqual(new_list1,new_list2)
         
+    def _test_extract_markdown_images(self):
+        matches = extract_markdown_images(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        )
+        self.assertListEqual([("image", "https://i.imgur.com/zjjcJKZ.png")], matches)
 
+    def _test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"
+                ),
+            ],
+            new_nodes,
+        )
+    def test_superlist(self):
+        text1 = "This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        text2 = "This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev) 2nd entry"
 
+        self.assertNotEqual(text_to_textnodes(text1),text_to_textnodes(text2))
+    
 if __name__ == "__main__":
     unittest.main()

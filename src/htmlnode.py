@@ -1,5 +1,5 @@
 from textnode import *
-
+import re
 class HTMLNode:
     def __init__(self,tag = None,value = None,children= None,props= None):
         self.tag = tag
@@ -104,7 +104,6 @@ def text_node_to_html_node(text_node):
         }
         return LeafNode(tag,"",prop)   
 
-
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     mainlist = []
     
@@ -130,21 +129,96 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                     else:
                         node = TextNode(part,entry.text_type)
                     
-                    print(node)
+                    #print(node)
                     mainlist.append(node)
                     start +=1
 
     return mainlist
 
+def extract_markdown_images(text):
+    return re.findall(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)",text)
+def extract_markdown_links(text):
+    return re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)",text)
 
+def split_nodes_image(old_nodes):
+    mainlist = []
+    #print("test 1")
+    for entry in old_nodes:
+        #print(entry)
+        sublist = extract_markdown_images(entry.text)
+        #print(sublist)
+        if len(sublist) <1 or entry.text_type != TextType.TEXT:
+            mainlist.append(entry)
 
+        else:
+            
+            #section_list = []
+            text_to_proc = entry.text
+            sections = []
 
+            for sub in sublist:
+                sections = text_to_proc.split(f"![{sub[0]}]({sub[1]})", 1)
+
+                if len(sections[0]) >0:
+
+                    mainlist.append(TextNode(sections[0],TextType.TEXT))
+
+                mainlist.append(TextNode(sub[0],TextType.IMAGE,sub[1]))
+                text_to_proc = sections[1]
+
+            if len(text_to_proc) >0:                    
+                mainlist.append(TextNode(text_to_proc,TextType.TEXT))
+
+    #print(" fin list:",mainlist)
+    return mainlist
+
+def split_nodes_link(old_nodes):
+    mainlist = []
+
+    for entry in old_nodes:
+        sublist = extract_markdown_links(entry.text)
+        
+        if len(sublist) <1 or entry.text_type != TextType.TEXT:
+            mainlist.append(entry)
+
+        else:
+            #section_list = []
+            text_to_proc = entry.text
+            sections = []
+            #print(entry)            
+            for sub in sublist:
+                sections = text_to_proc.split(f"[{sub[0]}]({sub[1]})", 1)
+                #print(sections)
+                if len(sections[0]) >0:
+
+                    mainlist.append(TextNode(sections[0],TextType.TEXT))
+
+                mainlist.append(TextNode(sub[0],TextType.LINK,sub[1]))
+                text_to_proc = sections[1]
+
+            if len(text_to_proc) >0:                    
+                mainlist.append(TextNode(text_to_proc,TextType.TEXT))
+
+    #print(" fin list:",mainlist)
+    return mainlist
+
+def text_to_textnodes(text):
+    superlist = [TextNode(text,TextType.TEXT)]
+    superlist = split_nodes_delimiter(superlist,"**",TextType.BOLD)
+    superlist = split_nodes_delimiter(superlist,"_",TextType.ITALIC)
+    superlist = split_nodes_delimiter(superlist,"`",TextType.CODE)
+    superlist = split_nodes_image(superlist)
+    superlist = split_nodes_link(superlist)
+
+    return superlist
 
 
 def main():
-    a = TextNode("this is a**test**text#1**another** entry",TextType.TEXT)
-    b = [a]
-    c = split_nodes_delimiter(b,"**",TextType.BOLD)
+    text = "This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+    print("start:", text_to_textnodes(text))
+
+
+
 
 if __name__ == "__main__":
     main()
