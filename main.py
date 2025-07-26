@@ -2,11 +2,12 @@ from src.textnode import TextNode, TextType
 from src.htmlnode import *
 import os
 import shutil
+import sys
 
-def folder_operation():
-    sub_root = os.path.dirname(os.path.abspath(__file__))
+def folder_operation(subroot):
+    sub_root = os.path.dirname(subroot)
     print(sub_root)
-    public_dir = os.path.join(sub_root,"public")
+    public_dir = os.path.join(sub_root,"docs")
     static_dir = os.path.join(sub_root,"static")
 
     if os.path.exists(public_dir):
@@ -35,7 +36,7 @@ def extract_title(markdown):
     
     
 #step 5
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path,basepath):
     #step 5.1
     #print(f"generating page from {from_path} to {dest_path} using {template_path}")
     #step 5.2
@@ -54,6 +55,8 @@ def generate_page(from_path, template_path, dest_path):
     #step 5.6
     template = template.replace("{{ Title }}",title)
     template = template.replace("{{ Content }}",proc_2)
+    template = template.replace('href="/', f'href="{basepath}')
+    template = template.replace('src="/', f'src="{basepath}')
     #step 5.7
 
     #dir_path = os.path.dirname(dest_path)
@@ -63,7 +66,7 @@ def generate_page(from_path, template_path, dest_path):
         f.write(template)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path,basepath):
     for item in os.listdir(dir_path_content):
         current = os.path.join(dir_path_content,item)
 
@@ -84,7 +87,7 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
 
                 print("filename:",filename)
                 
-                generate_page(current,template_path,filename)
+                generate_page(current,template_path,filename,basepath)
 
 
 
@@ -94,14 +97,22 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
 
 def main():
     #print(TextNode("text text",TextType.BOLD,"https://www.boot.dev"))
+    if len(sys.argv) >1:
+        basepath  = sys.argv[1]
+    else: basepath = "/"
+
+    if not basepath.startswith("/"):
+        basepath = "/" + basepath
+    if not basepath.endswith("/"):
+        basepath = basepath + "/"
 
     sub_root = os.path.dirname(os.path.abspath(__file__))
     source_dir = os.path.join(sub_root,"content")
     template_dir = os.path.join(sub_root,"template.html")
-    target_dir = os.path.join(sub_root,"public")
+    target_dir = os.path.join(sub_root,"docs")
 
-    folder_operation()
-    generate_pages_recursive(source_dir,template_dir,target_dir)
+    folder_operation(sub_root)
+    generate_pages_recursive(source_dir,template_dir,target_dir,basepath)
 
 if __name__ == "__main__":
     main()

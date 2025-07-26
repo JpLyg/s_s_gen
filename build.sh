@@ -1,0 +1,1 @@
+python3 src/main.py "/s_s_gen/"
