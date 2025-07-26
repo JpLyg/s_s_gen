@@ -8,7 +8,7 @@ class HTMLNode:
         self.props = props
 
     def to_html(self):
-        raise NotImplementedError
+        raise Exception("Not set")
     
     def props_to_html(self):
         string = ""
@@ -70,8 +70,7 @@ class ParentNode(HTMLNode):
         #props is blank
         #return f"<{self.tag}>{children_set}</{self.tag}>"
 
-
-def text_node_to_html_node(text_node):
+def text_node_to_html_node(text_node): #returns a leaf nodes
     if text_node.text_type not in TextType: raise Exception("invalid text type")
 
     if text_node.text_type == TextType.TEXT:#plain text
@@ -116,6 +115,8 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
             mainlist.append(entry)
         else:
             if count % 2 != 0:
+                #print("delimeter:",delimiter)
+                #print("entry text:",entry.text)
                 raise Exception ("Unenclosed tag")
             else:
                 #print("node valid for processing")
@@ -202,7 +203,8 @@ def split_nodes_link(old_nodes):
     #print(" fin list:",mainlist)
     return mainlist
 
-def text_to_textnodes(text):
+def text_to_textnodes(text): #returns a list of textnodes
+    #print("text:",text)
     superlist = [TextNode(text,TextType.TEXT)]
     superlist = split_nodes_delimiter(superlist,"**",TextType.BOLD)
     superlist = split_nodes_delimiter(superlist,"_",TextType.ITALIC)
@@ -212,24 +214,183 @@ def text_to_textnodes(text):
 
     return superlist
 
-def markdown_to_blocks(markdown):
+def _markdown_to_blocks(markdown):
     content_list = markdown.split("\n\n")
     content_list = list(map(lambda x: x.strip(),content_list))
     content_list = list(filter(lambda x: len(x)>0, content_list))
 
-    print(content_list)
+    #print(content_list)
     return content_list
 
+def markdown_to_blocks_phar(markdown):
+    # splits on 2 or more consecutive line breaks, possibly with whitespace
+    blocks = re.split(r"\n\s*\n", markdown)
+    blocks = [block.strip() for block in blocks if block.strip()]
+    blocks = [block.replace("\n", " ") for block in blocks]
+    return blocks
+
+def markdown_to_blocks(markdown):
+    # splits on 2 or more consecutive line breaks, possibly with whitespace
+    blocks = re.split(r"\n\s*\n", markdown)
+    blocks = [block.strip() for block in blocks if block.strip()]
+    #blocks = [block.replace("\n", " ") for block in blocks]
+    return blocks
+
+
+def block_to_block_type (markdown):
+
+    parts = list(filter(lambda x: len(x)>0, markdown.split()))
+    #print(parts)
+
+    if len(parts[0]) <= 6 and parts[0].count("#") == len(parts[0]):
+        #print(parts[0])
+        #print("heading")
+        return BlockType.HEADING
+    
+    if markdown[:3] == "```" and markdown[-1:-4:-1] == "```":
+        #print (markdown[:3],"--",markdown[-1:-3])
+        #print("code")
+        return BlockType.CODE
+    
+    parts = list(filter(lambda x: len(x)>0, markdown.split("\n")))
+    #print("parts",parts)
+    quoute_check = list(filter(lambda x: x[0] == ">", parts))
+
+    
+
+    if len(parts) == len(quoute_check):
+        #print(quoute_check)
+        #print("quote")
+        return BlockType.QUOTE
+
+    unlist_check = list(
+        filter(lambda x: x[:2] == "- "  
+               and len(x.split("-",1)[1].strip())>0, 
+               parts)
+        )
+
+    if len(parts) == len(unlist_check):
+        #print(unlist_check)
+        #print("unoredered list")
+        return BlockType.UNORDERED_LIST
+    
+    list_check = True
+    for i in range(len(parts)):
+        splits = parts[i].split(".",1)
+
+        if splits[0].isdigit() == False: 
+            list_check = False
+            break #check if the first part is numerical
+        if i == 0 and splits[0] != "1": 
+            list_check = False
+            break #check if the first entry is 1
+        if str(i+1) != splits[0]: 
+            list_check = False
+            break # check if they are in order
+        if splits[1][0] != " ": 
+            list_check = False
+            break # no space after dot
+        if len(splits[1].strip()) <1: 
+            list_check = False
+            break #no character after numerator
+
+    if list_check: 
+        return BlockType.ORDERED_LIST
+
+    return BlockType.PARAGRAPH
+
+def text_to_children(text): #returns a list of leafnodes
+    # Convert text to TextNodes (handling inline markdown)
+    text_nodes = text_to_textnodes(text)  # You should have this function
+    
+    # Convert TextNodes to HTMLNodes
+    html_nodes = []
+    for text_node in text_nodes:
+        html_node = text_node_to_html_node(text_node)  # You should have this function
+        html_nodes.append(html_node)
+    
+    return html_nodes
+
+def to_list(child,delimiter):
+    output = []
+    for entry in child:
+        a = ParentNode(delimiter,[entry])
+        output.append(a)
+    return a
+
+def markdown_to_html_node(markdown):
+    #step 1
+    step1 = markdown_to_blocks(markdown)
+    mainlist = []
+    #print(step1)
+    #step 2
+    for units in step1:
+        
+        #step 2.1
+        blocktype = block_to_block_type(units)
+        #print("blocktype:",blocktype)
+
+        #step 2.2
+        #print(blocktype)
+        if blocktype == BlockType.PARAGRAPH:
+            mod_units = units.replace("\n"," ")            
+            child = text_to_children(mod_units)
+            node = ParentNode("p",child)
+
+        if blocktype == BlockType.HEADING:
+            level = units.split()[0].count("#")
+            child = text_to_children(units)
+            node = ParentNode(f"h{level}",child)
+
+        if blocktype == BlockType.CODE:
+            a = units[3:-3]
+            a = a.lstrip("\n")
+            child = LeafNode(None,a)
+            pre_node = ParentNode("code",[child])
+            node = ParentNode("pre",[pre_node])
+
+        if blocktype == BlockType.QUOTE:
+            child = text_to_children(units)
+            node = ParentNode("blockquote",child)
+
+        if blocktype == BlockType.UNORDERED_LIST:
+            child = text_to_children(units)
+            child = to_list(child,"li")
+            node = ParentNode("ul",child)
+
+        if blocktype == BlockType.ORDERED_LIST:
+            child = text_to_children(units)
+            child = to_list(child,"li")
+            node = ParentNode("ol",[])
+        mainlist.append(node)
+        #print("node:",node)
+        
+    exert = ParentNode("div",mainlist)
+    
+    #print(exert.to_html())
+    return exert
+
+    #return ParentNode("div",mainlist)
+        #step 2.3
+
+
+
+
+
+        
+
+
+
+
 def main():
-    text = """# This is a heading
-
-This is a paragraph of text. It has some **bold** and _italic_ words inside of it.
-
-- This is the first list item in a list block
-- This is a list item
-- This is another list item
+    text = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
 """
-    markdown_to_blocks(text)
+
+    markdown_to_html_node(text)
 
 
 

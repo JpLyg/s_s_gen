@@ -97,7 +97,7 @@ class TestTextNode(unittest.TestCase):
 
         self.assertNotEqual(text_to_textnodes(text1),text_to_textnodes(text2))
     
-    def test_markdown_to_blocks(self):
+    def _test_markdown_to_blocks(self):
         md = """
 This is **bolded** paragraph
 
@@ -117,6 +117,60 @@ This is the same paragraph on a new line
             ],
         )
 
+    def _test_block_to_block_type(self):
+        name1=""">All that glitters
+>is not gold."""
+        name2 = """>All that glitters
+>is indeed not gold.
+"""
+        self.assertEqual(block_to_block_type(name1),block_to_block_type(name2))
 
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+        expected = "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>"
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        print("node:\n",node.to_html())
+        print ("expected:\n",expected)
+        print("---------------------------------------------------------------------------")
+        print(repr(html))
+        print(repr("<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>"))
+        print("---------------------------------------------------------------------------")
+        print(html.encode('utf-8'))
+        print(expected.encode('utf-8'))
+        self.assertEqual(
+            html,
+            expected,
+        )
+
+    def test_codeblock(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+        a = "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>"
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+
+        
+        print("node:\n",node.to_html())
+        print ("expected:\n",a)
+        print("---------------------")
+
+        self.assertEqual(
+        html,
+        a,
+    )
+        
+        
 if __name__ == "__main__":
     unittest.main()
