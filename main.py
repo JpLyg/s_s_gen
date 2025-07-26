@@ -5,15 +5,16 @@ import shutil
 import sys
 
 def folder_operation(subroot):
-    sub_root = os.path.dirname(subroot)
-    print(sub_root)
-    public_dir = os.path.join(sub_root,"docs")
-    static_dir = os.path.join(sub_root,"static")
+    print(subroot)
+    public_dir = os.path.join(subroot,"docs")
+    static_dir = os.path.join(subroot,"static")
+
+    print("static dir:",static_dir)
 
     if os.path.exists(public_dir):
         shutil.rmtree(public_dir)
 
-    os.mkdir(public_dir)
+    os.makedirs(public_dir, exist_ok=True)
 
     for item in os.listdir(static_dir):
         from_loc = os.path.join(static_dir,item)
@@ -55,8 +56,13 @@ def generate_page(from_path, template_path, dest_path,basepath):
     #step 5.6
     template = template.replace("{{ Title }}",title)
     template = template.replace("{{ Content }}",proc_2)
+    print(basepath)
+    
+
     template = template.replace('href="/', f'href="{basepath}')
     template = template.replace('src="/', f'src="{basepath}')
+
+    template = template.replace("{{ basepath }}",basepath)
     #step 5.7
 
     #dir_path = os.path.dirname(dest_path)
@@ -72,20 +78,20 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path,base
 
         if os.path.isdir(current):
             target = os.path.join(dest_dir_path,item)
-            generate_pages_recursive(current,template_path,target)
+            generate_pages_recursive(current,template_path,target,basepath)
         else:
             fileset = os.path.splitext(current)
             if fileset[1] == ".md":
 
-                print("content dir:",dir_path_content)
-                print("public dir:",dest_dir_path)
+                #print("content dir:",dir_path_content)
+                #print("public dir:",dest_dir_path)
 
                 os.makedirs(dest_dir_path,exist_ok=True)
 
                 filename = os.path.basename(current).split(".")[0] + ".html"        
                 filename = os.path.join(dest_dir_path,filename)
 
-                print("filename:",filename)
+                #print("filename:",filename)
                 
                 generate_page(current,template_path,filename,basepath)
 
@@ -107,6 +113,7 @@ def main():
         basepath = basepath + "/"
 
     sub_root = os.path.dirname(os.path.abspath(__file__))
+    #sub_root = os.path.join(sub_root,basepath)
     source_dir = os.path.join(sub_root,"content")
     template_dir = os.path.join(sub_root,"template.html")
     target_dir = os.path.join(sub_root,"docs")

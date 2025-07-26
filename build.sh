@@ -1,1 +1,1 @@
-python3 src/main.py "/s_s_gen/"
+python3 main.py "/s_s_gen/"
