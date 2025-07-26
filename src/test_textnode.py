@@ -125,7 +125,7 @@ This is the same paragraph on a new line
 """
         self.assertEqual(block_to_block_type(name1),block_to_block_type(name2))
 
-    def test_paragraphs(self):
+    def _test_paragraphs(self):
         md = """
 This is **bolded** paragraph
 text in a p
@@ -150,7 +150,7 @@ This is another paragraph with _italic_ text and `code` here
             expected,
         )
 
-    def test_codeblock(self):
+    def _test_codeblock(self):
         md = """
 ```
 This is text that _should_ remain

@@ -1,5 +1,9 @@
-from textnode import *
+from .textnode import *
 import re
+import os
+import shutil
+import sys
+
 class HTMLNode:
     def __init__(self,tag = None,value = None,children= None,props= None):
         self.tag = tag
@@ -302,7 +306,6 @@ def block_to_block_type (markdown):
 def text_to_children(text): #returns a list of leafnodes
     # Convert text to TextNodes (handling inline markdown)
     text_nodes = text_to_textnodes(text)  # You should have this function
-    
     # Convert TextNodes to HTMLNodes
     html_nodes = []
     for text_node in text_nodes:
@@ -311,12 +314,50 @@ def text_to_children(text): #returns a list of leafnodes
     
     return html_nodes
 
-def to_list(child,delimiter):
+def to_list(child,delimiter,type):
     output = []
-    for entry in child:
-        a = ParentNode(delimiter,[entry])
+
+    splicer = " "
+    if type == "ol": splicer = "."
+    elif type == "ul": splicer = "-"
+    elif type == "qu": splicer = ">"
+
+    child_list = child.split("\n")
+
+    for entry in child_list:
+        splice = entry.split(splicer,1)
+        cut = splice[1].lstrip()
+        pre = text_to_children(cut)
+        a = ParentNode(delimiter,pre)
         output.append(a)
-    return a
+    return output
+
+def to_quoute(child):
+    output = []
+    child_list = child.split("\n")
+    #print("child",child_list)
+    child_list.append(">")
+    splice = ""
+    previous=""
+
+    for i in range(len(child_list)-1):
+        current = child_list[i].split(">",1)[1].strip()
+        next = child_list[i+1].split(">",1)[1].strip()
+
+        if len(current) > 0 and len(splice)>0:
+            splice = splice + "\n" +current
+        else: splice = current
+
+        if len(next) <1:
+            if previous != "":
+                a = LeafNode("p",splice)
+            else:
+                a = LeafNode(None,splice)
+            splice = ""
+            previous = current
+            output.append(a)
+        
+    return output
 
 def markdown_to_html_node(markdown):
     #step 1
@@ -339,7 +380,7 @@ def markdown_to_html_node(markdown):
 
         if blocktype == BlockType.HEADING:
             level = units.split()[0].count("#")
-            child = text_to_children(units)
+            child = text_to_children(units[level:].lstrip())
             node = ParentNode(f"h{level}",child)
 
         if blocktype == BlockType.CODE:
@@ -350,18 +391,17 @@ def markdown_to_html_node(markdown):
             node = ParentNode("pre",[pre_node])
 
         if blocktype == BlockType.QUOTE:
-            child = text_to_children(units)
+            child = to_quoute(units,)
+            #print("childs",child)
             node = ParentNode("blockquote",child)
 
-        if blocktype == BlockType.UNORDERED_LIST:
-            child = text_to_children(units)
-            child = to_list(child,"li")
+        if blocktype == BlockType.UNORDERED_LIST:   
+            child = to_list(units,"li","ul")            
             node = ParentNode("ul",child)
 
         if blocktype == BlockType.ORDERED_LIST:
-            child = text_to_children(units)
-            child = to_list(child,"li")
-            node = ParentNode("ol",[])
+            child = to_list(units,"li","ol")
+            node = ParentNode("ol",child)
         mainlist.append(node)
         #print("node:",node)
         
@@ -373,24 +413,14 @@ def markdown_to_html_node(markdown):
     #return ParentNode("div",mainlist)
         #step 2.3
 
-
-
-
-
-        
-
-
-
-
 def main():
-    text = """
-```
-This is text that _should_ remain
-the **same** even with inline stuff
-```
-"""
+    A = """1. **First item is bold**
+2. *Second item is italic*
+3. This one has both: **_bold and italic_**
+4. Normal item"""
 
-    markdown_to_html_node(text)
+    B = markdown_to_html_node(A)
+    #print(B.props_to_html)
 
 
 
